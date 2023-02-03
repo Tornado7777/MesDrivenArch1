@@ -12,28 +12,44 @@ namespace RestoranLes1
     {
         static void Main(string[] args)
         {
-            Console.OutputEncoding= Encoding.UTF8;
+            var rnd = new Random();
+            Console.OutputEncoding = Encoding.UTF8;
             var rest = new Restaurant();
-            while(true)
+            while (true)
             {
                 Console.WriteLine("Привет! Желаете забронировать столик?\n" +
                     "1 - мы уведомим Вас по смс (асинхронно)\n" +
-                    "2 - подождите на линии, мы Вас оповестим(синхронно)");
-                if(!int.TryParse(Console.ReadLine(), out var choice) && choice != 1 && choice != 2)
+                    "2 - подождите на линии, мы Вас оповестим(синхронно)\n" +
+                    "Или снять бронь\n" +
+                    "3 - мы уведомим Вас по смс (асинхронно)\n" +
+                    "4 - подождите на линии, мы Вас оповестим(синхронно)\n"
+                    );
+                if (!int.TryParse(Console.ReadLine(), out var choice)
+                    && choice != 1
+                    && choice != 2
+                    && choice != 3
+                    && choice != 4)
                 {
-                    Console.WriteLine("Введите, пожалуйста 1 или 2");
+                    Console.WriteLine("Введите, пожалуйста 1, 2, 3 или 4");
                     continue;
                 }
 
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
-                if(choice== 1)
+                switch (choice)
                 {
-                    rest.BookFreeTableAsync(1);
-                }
-                else
-                {
-                    rest.BookFreeTable(1);
+                    case 1:
+                        rest.BookFreeTableAsync(1);
+                        break;
+                    case 2:
+                        rest.BookFreeTable(1);
+                        break;
+                    case 3:
+                        rest.BookBookedTable(rnd.Next(0, 9));
+                        break;
+                    case 4:
+                        rest.BookBookedTableAsync(rnd.Next(0, 9));
+                        break;
                 }
 
                 Console.WriteLine("Спасибо за Ваше обращение!");
