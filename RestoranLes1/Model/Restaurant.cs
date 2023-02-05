@@ -10,6 +10,7 @@ namespace RestoranLes1.Model
     public class Restaurant
     {
         private readonly List<Table> _tables = new List<Table>();
+        private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(true);
         public Restaurant() 
         {
             for (ushort i = 1; i <= 10; i++)
@@ -18,63 +19,81 @@ namespace RestoranLes1.Model
             }
         }
 
-        public void BookFreeTable(int countOfPersons)
+        /// <summary>
+        /// Забронировать свободный столик по количеству гостей, синхронно
+        /// </summary>
+        /// <param name="countOfGuests">количество гостей</param>
+        /// <returns>забронированный стол</returns>
+        public Table BookFreeTable(int countOfGuests)
         {
-            Console.WriteLine("Добрый день! Подождите секунду я подберу столи и подтвержу вашу бронь, оставайтесь на линии!");
-            var table = _tables.FirstOrDefault(t => t.SeatsCount > countOfPersons && 
-                                    t.State == State.Free);
+            _autoResetEvent.WaitOne();
+            var table = _tables.FirstOrDefault(t => t.SeatsCount > countOfGuests && t.State == State.Free);
             Thread.Sleep(1000 * 5);
             table?.SetState(State.Booked);
-
-            Console.WriteLine(table is null
-                ? $"К сожалению все столики заняты"
-                : $"Готово! Ваш столик номер {table.Id}.");
+            _autoResetEvent.Set();
+            return table;
         }
-
-        public void BookFreeTableAsync(int countOfPersons)
+        /// <summary>
+        /// Забронировать свободный столик по количеству гостей, асинхронно
+        /// </summary>
+        /// <param name="countOfGuests">количество гостей</param>
+        /// <returns>забронированный стол</returns>
+        public async Task<Table> BookFreeTableAsync(int countOfGuests)
         {
-            Console.WriteLine("Добрый день! Подождите секунду я подберу столи и подтвержу вашу бронь, Вам придет уведомление!");
-            Task.Run(async () => 
-            {
-                var table = _tables.FirstOrDefault(t => t.SeatsCount > countOfPersons &&
-                                   t.State == State.Free);
-                await Task.Delay(1000 * 5);
-
-                table?.SetState(State.Booked);
-
-                Console.WriteLine(table is null
-                    ? $"УВЕДОМЛЕНИ: К сожалению все столики заняты"
-                    : $"УВЕДОМЛЕНИ: Готово! Ваш столик номер {table.Id}.");
-            });           
+            _autoResetEvent.WaitOne();
+            var table = _tables.FirstOrDefault(t => t.SeatsCount > countOfGuests && t.State == State.Free);
+            await Task.Delay(1000 * 5);
+            table?.SetState(State.Booked);
+            _autoResetEvent.Set();
+            return table;
         }
-
-        public void BookBookedTable(int numberTable)
+        /// <summary>
+        /// отменить бронь стола, синхронно
+        /// </summary>
+        /// <param name="tableId">номер стола</param>
+        /// <returns>стол, на котором была отменена бронь</returns>
+        public Table CancelBooking(int tableId)
         {
-            Console.WriteLine("Добрый день! Подождите секунду я сниму бронь, оставайтесь на линии!");
-            var table = _tables.FirstOrDefault(t => t.Id == numberTable);
+            var table = _tables.Find(t => t.Id == tableId);
             Thread.Sleep(1000 * 5);
-
-            table.SetState(State.Free);
-
-            Console.WriteLine(table is null
-                ? $"Столик с таким номером не найден."
-                : $"Готово! Бронь снята со столика {table.Id}.");
+            table?.SetState(State.Free);
+            return table;
         }
-
-        public void BookBookedTableAsync(int numberTable)
+        /// <summary>
+        /// отменить бронь стола, асинхронно
+        /// </summary>
+        /// <param name="tableId">номер стола</param>
+        /// <returns>стол, на котором была отменена бронь</returns>
+        public async Task<Table> CancelBookingAsync(int tableId)
         {
-            Console.WriteLine("Добрый день! Подождите секунду я подберу столи и подтвержу вашу бронь, Вам придет уведомление!");
-            Task.Run(async () =>
+            var table = _tables.Find(t => t.Id == tableId);
+            await Task.Delay(1000 * 5);
+            table?.SetState(State.Free);
+            return table;
+
+        }
+        /// <summary>
+        /// проверка, забронирован ли стол
+        /// </summary>
+        /// <param name="tableId">номер стола</param>
+        /// <returns></returns>
+        public bool CheckIfBooked(int tableId)
+        {
+            var table = _tables.Find(t => t.Id == tableId);
+            return (table.State == State.Booked);
+        }
+        /// <summary>
+        /// метод для повторяющейся отмены брони после определенного времени
+        /// </summary>
+        /// <returns>стол с отмененной бронью</returns>
+        public Table CancelBookingTimed()
+        {
+            var table = _tables.Find(t => t.State == State.Booked);
+            if (table != null)
             {
-                var table = _tables.FirstOrDefault(t => t.Id == numberTable);
-                await Task.Delay(1000 * 5);
-
-                table.SetState(State.Free);
-
-                Console.WriteLine(table is null
-                    ? $"УВЕДОМЛЕНИ: Столик с таким номером не найден."
-                    : $"УВЕДОМЛЕНИ: Готово! Бронь снята со столика {table.Id}.");
-            });
+                table?.SetState(State.Free);
+            }
+            return table;
         }
     }
 }
